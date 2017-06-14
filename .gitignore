@@ -1,0 +1,4 @@
+# ignore all object and library files
+*.[oa]
+# ignore emacs twiddle files
+*~
