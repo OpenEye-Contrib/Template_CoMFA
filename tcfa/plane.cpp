@@ -166,7 +166,8 @@ If all the Z coords are close to one another, plane travelling along X axis.  */
 			linear = 0; 
 	}
 	if ( linear ) {
-
+		*r_islinear = 1;
+                zdiff = za - ztotal;
 		if ( ( xdir > 0.0 && zdiff < -0.1 ) || ( xdir < 0.0 && zdiff > 0.1 ) )
 			return 1;
 		return 0;

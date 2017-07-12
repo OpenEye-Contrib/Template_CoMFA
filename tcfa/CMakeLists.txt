@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 2.8.9)
 
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
 set (OE_DIR "~/openeye/toolkits")
 
 set (OE_LIBS
+    oegrid
+    oefizzchem
     oedepict
     oebio
     oechem
@@ -13,11 +17,14 @@ set (OE_LIBS
 include_directories ( ${OE_DIR}/include )
 link_directories ( ${OE_DIR}/lib )
 
-set (LIBS "${OE_LIBS};${SYSLIBS};${SYSRASTERLIBS};${SYSZLIB}")
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/)
+add_executable(text2hex ${OE_DIR}/examples/text2hex.cpp)
+
+set (LIBS "${OMPLIBS};${OE_LIBS};${SYSRASTERLIBS};${SYSLIBS};${SYSZLIB}")
 
 set (SRCS
     "tcfa tcfa.cpp"
 )
-set (CMAKE_BUILD_TYPE Debug)
+add_definitions("${OMPCFLAGS}")
 
 include (${OE_DIR}/examples/ExamplesTemplate.cmake)

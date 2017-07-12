@@ -1,5 +1,3 @@
-// C++ translation of FORTRAN PLS algorithm coded in 1985 by Ildiko Frank
-
 #include <fstream>
 #include <iostream>
 #include <cmath>
@@ -865,10 +863,10 @@ for(int ib=0; ib < *iboot; ib+=1 ) {
 			  &scrtch[npat*(nvar1+1)],scrtch,w1,w2,b,
 			  ro,u,v,&scrtch[nn-1],ierr)) return 0;
 		    if( (*ierr) != 0 ){
-		        int xncomp = icomp - 1;
-		        if( xncomp < 0 ) return 0;
+		        ncomp = icomp - 1;
+		        if( ncomp < 0 ) return 0;
 		        (*ierr) = 0;
-		        std::cout << "No more than " << xncomp << "components can be calculated\n";
+		        std::cout << "No more than " << ncomp << "components can be calculated\n";
 		        goto L_222;
 		    }
 		    for(int j=0; j < nvar2; j+=1 ){

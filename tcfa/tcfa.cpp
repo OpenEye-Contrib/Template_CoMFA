@@ -87,8 +87,11 @@ double kScore[nKTYPES];
 bool ***tmplK;
 
 
-void print(string foo) {
-    TClog << foo << endl;
+void prt(string foo) {
+    std::ofstream o;
+
+    o.open("dbg.txt",std::ios_base::app);
+    o << foo;
 }
 
 void hout(const vector<int> History) {
@@ -165,6 +168,8 @@ void bestRingPucker(OEGraphMol molC, double *Ccoo, const double *Tcoo, const int
             rgCloseID = nbor->GetIdx();
             break;
         }
+    if (rgCloseID == -1) return;
+
     // is ring origin nonplanar?
     bool NplrO = false;
     int ats[4];
@@ -352,6 +357,7 @@ void doCandValGeom(const unsigned int sprout, const unsigned int stem,
                 Posed[i] = true;
 
     int trunk = (int) History[History.size() - 2];
+    if (AMap[trunk] == -1) return;
 
     double Cbdlen = UTL_GEOM_VDIST(&origCoo[sprout * 3], &origCoo[stem * 3]);
     double Tbdlen = UTL_GEOM_VDIST(&Tcoo[AMap[sprout] * 3], &Tcoo[AMap[stem] * 3]);
@@ -536,7 +542,6 @@ int AlignNextAtoms(OEGraphMol molC, const OEGraphMol molT, const OEAtomBase *ste
         nbAts.push_back(nbor);
         BdInRing.push_back(bond->IsInRing());
         AtMapped.push_back(AMap[nbor->GetIdx()] >= 0);
-//	print(to_string(nbor->GetIdx())+" "+to_string(AMap[nbor->GetIdx()])+"=>"+to_string(AtMapped.back()));
     }
 // ... scoring each neighbor
     int nNbrs = (int) nbAts.size();
@@ -646,7 +651,7 @@ bool SuperPositionMol(OEMolBase &molC, double *misfitDist,
 
 // need a 3rd atom, mapped, preferably attached to Anchor1, else Anchor2
     bool fd3 = false;
-    bool bFlip = false;
+//    bool bFlip = false;
     for (OEIter<OEAtomBase> nbor = Anchor1->GetAtoms(); nbor; ++nbor)
         if ((int) nbor->GetIdx() != Cids[1] &&
             AMap[nbor->GetIdx()] != -1) {
@@ -660,7 +665,7 @@ bool SuperPositionMol(OEMolBase &molC, double *misfitDist,
                 AMap[nbor->GetIdx()] != -1) {
                 Cids[2] = nbor->GetIdx();
                 fd3 = true;
-                bFlip = true;
+//                bFlip = true;
                 break;
             }
     if (!fd3) return false;
@@ -710,7 +715,7 @@ bool SuperPositionMol(OEMolBase &molC, double *misfitDist,
 // establish best "4th" coord (C=>T of "stemiD"-attached atms) by reflection through superposition plane
     vector<int> atAttach;
     for (OEIter<OEAtomBase> nbor = molC.GetAtom(OEHasAtomIdx((unsigned int) stemID))->GetAtoms(); nbor; ++nbor)
-        if (nbor->GetIdx() != (unsigned int) sproutID && nbor->GetIdx() != (unsigned int) trunkID)
+        if (nbor->GetIdx() != (unsigned int) sproutID && nbor->GetIdx() != (unsigned int) trunkID && AMap[nbor->GetIdx()] != -1)
             atAttach.push_back(nbor->GetIdx());
     if (atAttach.size() > 0) {
         int aplane[3];
@@ -771,7 +776,7 @@ bool SuperPositionMol(OEMolBase &molC, double *misfitDist,
                 }
     }
 
-    if (RotBds) delete RotBds;
+//    if (RotBds) {delete RotBds; RotBds = NULL;}
     RotBds = new bool[molC.NumBonds()];
     for (unsigned int i = 0; i < molC.NumBonds(); ++i) RotBds[i] = false;
     for (OEIter<OEBondBase> ai = molC.GetBonds(); ai; ++ai)
@@ -791,7 +796,7 @@ bool SuperPositionMol(OEMolBase &molC, double *misfitDist,
 
 
     // computing distances between permanently positioned atoms
-    if (T2CatDist) delete T2CatDist;
+//    if (T2CatDist) {delete T2CatDist; T2CatDist = NULL;}
     T2CatDist = new double[molC.NumAtoms()];
     unsigned int nDist = 0;
     double totDist = 0.0;
@@ -975,6 +980,7 @@ bool getAnchor(int cAnch[2], const vector<double> TCScore,
     int isMust[Templ.NumAtoms()];
 
     if (dbg2) TClog << " Anchors (ID>base+Xtra): ";
+    cAnch[1] = -2;
     for (unsigned int i = 0; i < Templ.NumAtoms(); i++) isMust[i] = -1;
     for (int m = 0; m < nMatch; m++) isMust[TmplAts[m]] = m;
     tmAtScores tas[nMatch];
@@ -1055,6 +1061,13 @@ bool getAnchor(int cAnch[2], const vector<double> TCScore,
             break;
     }
     if (bestMusts[1] == -1) return false;
+/*
+    if (bestMusts[1] == -1 || bestMusts[0] == -1 ) {
+          *nxtRoot = -1;
+          if (dbg) TClog << "Root bond not found\n";
+          return false;
+    }
+*/
 // map tmpl atm IDs to cand atm IDs
     for (int i = 0; i < 2; ++i)
         for (int m = 0; m < (int) TmplAts.size(); ++m) {
@@ -1065,6 +1078,12 @@ bool getAnchor(int cAnch[2], const vector<double> TCScore,
                 break;
             }
         }
+/*
+    if (cAnch[0] == -1 || cAnch[1] == -1) {
+          if (dbg) TClog << "Root bond not found\n";
+          return false;
+    }
+*/
     if (dbg2) {
         TClog << "\n Anchor Atom(s):";
         for (int i = 0; i < 2; ++i) TClog << " (" << bestMusts[i] << "<=" << cAnch[i] << ")";
@@ -1303,6 +1322,7 @@ int main(int argc, char **argv)
 
 // set up for any user-designated template atoms that must anchor alignments
     bool *hasSmarts = new bool[nTmpl];
+    for (unsigned int i = 0; i < nTmpl; ++i) hasSmarts[i] = false;
     unsigned int **mustSmarts = new unsigned int *[nTmpl];
     int tid = 0;
     for (vector<OEGraphMol>::iterator Tmpl = Templates.begin();
@@ -1339,6 +1359,7 @@ int main(int argc, char **argv)
                 mustSmarts[tid][i] = apr->target->GetIdx();
         }
     }
+//    prt("nx cand ");
     int candID = 0;
     bool **candK = NULL;
 // process candidates one by one
@@ -1357,13 +1378,13 @@ int main(int argc, char **argv)
         cchk(molC);
 
 // candidate's ring system
-        if (Crings) delete Crings;
+//        if (Crings) delete Crings;
         Crings = new unsigned int[molC.NumAtoms()];
         nCrings = OEDetermineRingSystems(molC, Crings);
 
 // mark any user-defined additional 'match significant atoms'
         if (featwt != 0.0) {
-            if (candK != NULL) delete candK;
+//            if (candK != NULL) delete candK;
             candK = new bool *[nKTYPES];
             initKcand(molC, candK);
         }
@@ -1388,6 +1409,7 @@ int main(int argc, char **argv)
         for (vector<OEGraphMol>::iterator Tmpl = Templates.begin();
              Tmpl != Templates.end(); ++Tmpl) {
 
+//            prt("A");
             molT = *Tmpl;
             int mostExactMCS = 0;
 
@@ -1423,6 +1445,7 @@ int main(int argc, char **argv)
 */
             miS = mcssS.Match(molC, true);
             while (true) {
+//                prt("b");
                 if (!miS)
                     break;
                 const OEMatchBase *matchS = miS;
@@ -1448,6 +1471,7 @@ int main(int argc, char **argv)
 
 // consider each result of such an unconstrained MCS 
                 for (OEIter<OEMatchBase> miG = mcssG.Match(molC); miG; ++miG) {
+//                    prt("C");
                     const OEMatchBase *matchG = miG;
                     int nowAllMCS = matchG->NumAtoms();
                     double nowScore = ((double) (matchG->NumAtoms() + nBestID))
@@ -1537,7 +1561,7 @@ int main(int argc, char **argv)
         double cooSv[3 * (int) molC.NumAtoms()];
         bool havC = false;
         double loRMS = 1000000.0;
-        int rootSv = -1;
+//        int rootSv = -1;
         bool OKanch = true;
         if (dbg2) {
             TClog << " Exact Tmpl Atoms: ";
@@ -1573,7 +1597,7 @@ int main(int argc, char **argv)
                     havC = true;
                     OEGetPackedCoords(molC, cooSv);
                     loRMS = nowRMS;
-                    rootSv = rootM;
+//                    rootSv = rootM;
                 }
             }
             nbadAnch++;
@@ -1605,7 +1629,7 @@ int main(int argc, char **argv)
         if (candID % 100 == 0) cout << '\n' << candID;
 // cout << "finished " << molC.GetTitle() << " Cand: " << candID << " with Tmpl " << bestTmpl+1 << '\n';
         TClog << "finished Cand: " << candID << " " << molC.GetTitle() << " with Tmpl " << bestTmpl + 1 << '\n';
-
+//        prt('\n'+ to_string(candID) +'\n');
         if (n4syb > 0 && candID > n4syb) break;
 
     } // of candidates

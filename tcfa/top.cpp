@@ -1,8 +1,4 @@
-// implements and invokes the "topomerization" algorithm:
-// Jilek, R. J., Cramer, R. D. Topomers: A Validated Protocol for their Self-Consistent Generation. J. Chem. Inf. Comp. Sci. 2004, 44, 1221-1227.
-
 /*
-// for unit testing
 #include "openeye.h"
 
 #include <fstream>
@@ -61,6 +57,7 @@ void RingPuckerLR( OEGraphMol mol, double *coo, int a1, int a2, int a3,
 	bool *detecting ) {
 // ***********************************************************
 
+// cout << a1 << " " << a2 << " " << a3 <<endl;
     if (detecting) *detecting = false;
     	else if (Crings[a2] + Crings[a3] == 0 || Crings[a2] != Crings[a3] ) return; // shouldm't happen !
     vector<int> rids;
@@ -70,7 +67,7 @@ void RingPuckerLR( OEGraphMol mol, double *coo, int a1, int a2, int a3,
     OEAtomBase *a2pr = mol.GetAtom(OEHasAtomIdx(a2));    
     OEAtomBase *a3pr = mol.GetAtom(OEHasAtomIdx(a3));    
     int planeAt = -1; 
-    int a4 = -1;
+//    int a4 = -1;
     if (detecting) planeAt = a1;
     else {
      int nfd = 0;
@@ -81,7 +78,7 @@ void RingPuckerLR( OEGraphMol mol, double *coo, int a1, int a2, int a3,
 	}
 	if (a3pr->GetBond( mol.GetAtom(OEHasAtomIdx(rids[nra])))) {
 	    ++nfd;
-	    a4 = nra;
+//	    a4 = nra;
 	}
 	if (nfd == 2) break;
      }
@@ -99,7 +96,7 @@ void RingPuckerLR( OEGraphMol mol, double *coo, int a1, int a2, int a3,
     for (int i = 0; i < 3; i++) center[i] = 0.0;
     double testh = 0.0; 
     double toth = 0.0; 
-    double patomh = 0.0; 
+//    double patomh = 0.0; 
     double *cptr;
     for (int nra = 0; nra < (int) rids.size(); ++nra) {
     	cptr = coo + rids[nra] * 3;
@@ -108,12 +105,13 @@ void RingPuckerLR( OEGraphMol mol, double *coo, int a1, int a2, int a3,
 	if (rids[nra] == a3 || rids[nra] == a2 || rids[nra] == planeAt) {
 	    testh += h;
 	}
-	if (rids[nra] == a4) patomh = h;
+//	if (rids[nra] == a4) patomh = h;
 	toth += h;
 	center[0] += x * h;
 	center[1] += y * h;
 	center[2] += z * h;
     }
+// cout << planeAt << " " << a2 << " " << a3 << " " << toth << " " << (int) rids.size() << endl;
     if (fabs(toth) < 0.4) return; // planar ring system, so nothing to do
     if (detecting) {
 	*detecting = true;
@@ -137,15 +135,17 @@ void RingPuckerLR( OEGraphMol mol, double *coo, int a1, int a2, int a3,
 
 void reflectAtoms( OEGraphMol mol, double *coo, int npt, int *aplane, vector<int> FrameAts, bool doAll,
 	bool simple)
-// =========================================================================
-// reflects atms through the plane defined by the atoms whose indexes (base 0 )are in aplane, by modifying values in coo 
+/* =================================================================================== */
+/* reflects atms through the plane defined by the atoms whose indexes (base 0 )are in aplane, by modifying values in coo */
 {
 
 double cent[3], eval[3], evec[3][3], mat[3][3], x, xsq, xy, xz,
                y, ysq, yz, z, zsq, *cx, *cy, *cz, l, m, n, d, *xyz, h;
 int na, nrot, elem;
 
-// determine the parameters of the plane equation
+//cout << "Ref";
+/* Now perform the sums to determine the parameters of the plane      */
+/* equation.                                                          */
    x = xsq = y = ysq = z = zsq = xy = xz = yz = 0.0;
    for (na = 0; na < npt; na++ ) {
       cx = coo + 3 * ( aplane[ na ] );
@@ -175,7 +175,7 @@ int na, nrot, elem;
    mat[2][1] = yz  - z * cent[1];
    mat[2][2] = zsq - z * cent[2];
 
-// calculate the plane
+/* calculate the plane */
    if (!UTL_GEOM_SYMM_EIGENSYS ((double *)mat, 3, eval, (double *) evec, &nrot))  	return ;
 
    l = evec[0][0];
@@ -183,7 +183,8 @@ int na, nrot, elem;
    n = evec[2][0];
    d = (l * cent[0] + m * cent[1] + n * cent[2]);
 
-// perform reflection for the specified atoms
+	if (simple) {}
+/* perform reflection for the requested atom IDs within the input coordinate sets */
    bool *AXclude = new bool[mol.NumAtoms() ];
    for (int i = 0; i < (int) mol.NumAtoms(); ++i) AXclude[i] = false;
    for (int i = 0; i < (int) FrameAts.size(); ++i) AXclude[FrameAts[i]] = true;
@@ -198,12 +199,14 @@ int na, nrot, elem;
 			}
 		return;
 	}
-
+//cout << "Go";
    int ats2do[mol.NumAtoms()];
-   if (!doAll) getBondDist( mol, aplane[0], ats2do, AXclude);
- 
+   if (!doAll) {
+   	getBondDist( mol, aplane[0], ats2do, AXclude);
+   }
    for ( elem = 0; elem < (int)mol.NumAtoms(); elem++ ) {
         if (!doAll && ( ats2do[elem] <= 0) ) continue;
+//cout << elem << " ";
         xyz = coo + (elem * 3);
         h = l * xyz[0]  +  m * xyz[1]  +  n * xyz[2]  - d;
         xyz[0] -= 2.0 * l * h;
@@ -245,7 +248,6 @@ void fixFromAtoms( OEGraphMol mol, int now, int *toAt, int *fromAt ) {
 	now = t2;
     }
 }
-
 void getTieTorsions( double *Tcoo, int torDa, int torDb, int torA, int torB, int torC, double *r_t1, double *r_t2 )
 // *****************************************************
 {
@@ -270,7 +272,7 @@ int priorityCompare(const void *vnrec, const void *vtrec ) {
 
         nrec = (TopPriority *) vnrec;
         trec = (TopPriority *) vtrec;
-        rc = trec->branchCount - nrec->branchCount;   // larger is higher priority
+        rc = trec->branchCount - nrec->branchCount;   /* larger is higher priority */
         if ( rc ) return rc;
 
         drc = trec->branchWeight - nrec->branchWeight;
@@ -298,6 +300,7 @@ int ScoreBrnchs( const OEGraphMol mol, int *BDist, int aroot,
     for (int nbr = 0 ; nbr < nBranch; nbr++) {
 	TPr[nbr].atomIdx = TPr[nbr].covID = TPr[nbr].branchCount = 0;
 	TPr[nbr].branchWeight = TPr[nbr].branchDepthWeight = 0.0;
+//		TPr[nbr].cordDist = 0.0;
     }
     for (int iat = 0; iat < (int) mol.NumAtoms(); ++iat) 
 	covered[iat] = atDepth[iat] = whBrch[iat] = coverCt[iat] = 0;
@@ -378,7 +381,7 @@ int ScoreBrnchs( const OEGraphMol mol, int *BDist, int aroot,
 		
     }
     if (dbg2) {
-	TClog << aroot << " => " << best1 << endl;
+	TClog << aroot << endl;
 	for (int nbr = 0; nbr < nBranch; ++nbr) 
 	TClog << " " << nbr << " " << TPr[nbr].atomIdx << " " << TPr[nbr].covID << " " << TPr[nbr].branchCount << " " << TPr[nbr].branchWeight << " " << TPr[nbr].branchDepthWeight << endl;
     }
@@ -401,6 +404,7 @@ void getAB( const OEGraphMol mol, int *BDist, bool *isTors, bool *isTorRoot,
    for (OEIter<OEBondBase> bond = mol.GetBonds(); bond; ++bond)
 		if (bond->IsRotor()) {
 	isTors[bond->GetIdx()] = true;
+ // cout << bond->GetEndIdx() << " " << bond->GetBgnIdx() << "  ";
   	int bRoot = BDist[ bond->GetBgnIdx() ];
 	if (BDist[ bond->GetEndIdx() ] < bRoot) 
 		bRoot = BDist[ bond->GetEndIdx() ];
@@ -426,11 +430,10 @@ bool rankBranches( OEGraphMol mol, int *BDist, double *AtWts,
 	int *toAtom, int *nxtBest, int *ties, int *symties, int *fromAts,
 	int *whBrch, int *fromties) {
 // ******************************************************
-// score all potential path choices -- toAtoms and fromAtoms
 
+// score all potential path choices -- toAtoms and fromAtoms
    int BrchAts[10];
    int mainID = -1;
-   if (dbg2) TClog << "Branch Scoring\nBrch ToAt Covd CovdCnt BrchWt DepthWt " << endl;
    for (int dist = 1; dist < (int) mol.NumAtoms(); ++dist ) {
 	for (int iat = 0; iat < (int) mol.NumAtoms(); ++iat ) {
 	    if (BDist[iat] != dist) continue;
@@ -512,20 +515,19 @@ void topomerize( OEGraphMol mol, double *coord, int *AMap, bool *Posed,
 	const int cAnch[2] )
 // *********************************************************************
 {
-    if (dbg2) TClog << "Topomer Generation:" << endl;
-
-// determine number of bonds separating each atom from the root
     int *BDist = new int[mol.NumAtoms()];
     getBondDist(mol,cAnch[0],BDist,NULL);
 
     double *AtWts = new double[mol.NumAtoms()];
     getAtWts(mol,AtWts);
+//    for (unsigned int i = 0; i < mol.NumAtoms(); ++i) cout << BDist[i] << " " << AtWts[i] << " ";
+//    cout << endl;
 
     bool *isTors = new bool[mol.NumBonds()];
     bool *isTorRoot = new bool[mol.NumAtoms()];
     bool *isProChir = new bool[mol.NumAtoms()];
     getAB( mol, BDist, isTors, isTorRoot, isProChir );
-
+//    for (unsigned int i = 0; i < mol.NumAtoms(); ++i) cout << isTorRoot[i] << " " << isProChir[i] << "  ";
     int toAtom[mol.NumAtoms()],nxtBest[mol.NumAtoms()],ties[mol.NumAtoms()],
 	symties[mol.NumAtoms()], fromAts[mol.NumAtoms()],
 	whBrch[mol.NumAtoms()], fromties[mol.NumAtoms()];
@@ -541,7 +543,7 @@ void topomerize( OEGraphMol mol, double *coord, int *AMap, bool *Posed,
     	for (int iat = 0; iat < (int) mol.NumAtoms(); ++iat )
 TClog << iat << " " << toAtom[iat] << " " << fromAts[iat] << " " << nxtBest[iat] << " " << ties[iat] << " " << symties[iat] << " " << whBrch[iat] << " " << fromties[iat] << endl;
 
-// adjust conformations (in order of distance of atoms from the root)
+// adjust conformations (in distance order of atoms)
     int atoms[mol.NumAtoms()];
     for (int iat = 0; iat < (int) mol.NumAtoms(); ++iat ) atoms[iat] = 0;
     for (OEIter<OEBondBase> bond=mol.GetBonds(OEIsRotor()); bond; ++bond) {
@@ -555,11 +557,11 @@ TClog << iat << " " << toAtom[iat] << " " << fromAts[iat] << " " << nxtBest[iat]
 	for (int iat = 0; iat < (int) mol.NumAtoms(); ++iat ) {
 	    if (atoms[iat] == 0) continue;
 	    if (Posed[iat]) continue;
+// cout << iat << endl;
 	    if (AMap[iat] != -1) continue;
 	    if (BDist[iat] != dist) continue;
-
-	    if (dbg2) TClog << "Topomer from atom " << iat << ": ";
-	    bool tRing2 = false;
+	    if (dbg2) TClog << "Topomer " << iat << ": ";
+//	    bool tRing2 = false;
 	    int a1 = iat;
             OEAtomBase *apr = mol.GetAtom(OEHasAtomIdx(iat));
             for (OEIter<OEAtomBase> nbor = apr->GetAtoms(); nbor; ++nbor) {
@@ -580,7 +582,7 @@ TClog << iat << " " << toAtom[iat] << " " << fromAts[iat] << " " << nxtBest[iat]
 		    if (Crings[a2]) ++nRingAt;
 		    if (Crings[a2] && Crings[a3] == Crings[a2]) {
 			chkPuck = true;
-		   	if (a2 == nxtBest[a1]) tRing2 = true; 
+//		   	if (a2 == nxtBest[a1]) tRing2 = true; 
 		    }
 		}
 		double torsion = (nRingAt ? 
@@ -644,10 +646,10 @@ TClog << iat << " " << toAtom[iat] << " " << fromAts[iat] << " " << nxtBest[iat]
 			int Nbrs[10];
 			int nNbrs = 0;
 			if (Crings[a1]) {
-			    for (int xiat = 0; xiat < (int) mol.NumAtoms(); 
-					++xiat ) 
-				if (Crings[xiat] == Crings[a1]) 
-				    ringAts.push_back(xiat);
+			    for (int iat2 = 0; iat2 < (int) mol.NumAtoms(); 
+					++iat2 ) 
+				if (Crings[iat2] == Crings[a1]) 
+				    ringAts.push_back(iat2);
 			    for (OEIter<OEAtomBase> atom = stem->GetAtoms(); 
 					atom; ++atom)
 				if (((int)atom->GetIdx()) != a0 && 
@@ -678,9 +680,9 @@ TClog << iat << " " << toAtom[iat] << " " << fromAts[iat] << " " << nxtBest[iat]
 			    for (OEIter<OEAtomBase> atom = stem->GetAtoms();
                                         atom; ++atom) 
 				if (((int)atom->GetIdx()) != a0)
-				  for (OEIter<OEAtomBase> atom1 = 
-					OEGetSubtree(stem,root); atom1; ++atom1)
-				    ats2refl.push_back(atom1->GetIdx());
+				  for (OEIter<OEAtomBase> atom2 = 
+					OEGetSubtree(stem,root); atom2; ++atom2)
+				    ats2refl.push_back(atom2->GetIdx());
 			    reflectAtoms(mol, coord, 3, plane, ats2refl, false, false);
 			    if (dbg2) TClog << " Inverted (chain); " ;
 			}
@@ -690,4 +692,11 @@ TClog << iat << " " << toAtom[iat] << " " << fromAts[iat] << " " << nxtBest[iat]
 	    }
 	    if (dbg2) TClog << endl;
     }
+/*
+    delete BDist;
+    delete AtWts;
+    delete isTors;
+    delete isTorRoot;
+    delete isProChir;
+*/
 }

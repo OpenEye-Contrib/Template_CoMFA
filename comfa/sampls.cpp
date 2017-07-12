@@ -138,7 +138,7 @@ void getCovar(const int nfld, double *fld, double *Covar, int nMol, int step) {
             double t = 0.5 * (Covar[i * nMol + i] + Covar[j * nMol + j] - dists[i * nMol + j]);
             Covar[i * nMol + j] = Covar[j * nMol + i] = t;
         }
-    delete dists;
+//    delete dists;
 }
 
 int sampls(int maxnc, int manyMol, double *manybio, int nfld,

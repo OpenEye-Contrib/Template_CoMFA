@@ -1,6 +1,3 @@
-// C++ translation of SYBYL's GAST_HUCK charge calcn
-// done to help reproduce "classical CoMFA"
-
 #include "openeye.h"
 
 #include <fstream>
@@ -820,13 +817,14 @@ bool getCoulArray(const OEGraphMol mol, const int *ATypes, const int *BTypes,
             if (num_left >= ((double) ndegen * 2.0))
                 for (int indx2 = 0; indx2 < ndegen; indx2++) {
                     occ[norb++] = 2.0;
-                    num_left -= 2.0;
+//                    num_left -= 2.0;
+                    num_left -= 2;
                 }
             else {    /* have to partition e- over orbitals */
                 double q = (double) num_left / (double) ndegen;
                 for (int indx2 = 0; indx2 < ndegen; indx2++) {
                     occ[norb++] = q;
-                    num_left -= q;
+                    num_left -= int(q);
                 }
             }
         } while (num_left > 0.0 && norb < (int) mol.NumAtoms());
